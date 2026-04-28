@@ -1,13 +1,25 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose'
 
 const connectDB = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI, {});
-        console.log('MongoDB connected successfully');
-    } catch (err) {
-        console.error('MongoDB connection failed:', err);
-        process.exit(1); // Exit process with failure
-    }
-};
+  try {
+    const conn = await mongoose.connect(process.env.MONGODB_URI, {
+      dbName: 'peercode',
+    })
 
-module.exports = connectDB;
+    console.log(`MongoDB connected: ${conn.connection.host}`)
+
+    mongoose.connection.on('disconnected', () => {
+      console.warn('MongoDB disconnected — attempting to reconnect...')
+    })
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('MongoDB reconnected')
+    })
+
+  } catch (err) {
+    console.error(`MongoDB connection failed: ${err.message}`)
+    process.exit(1)
+  }
+}
+
+export default connectDB
