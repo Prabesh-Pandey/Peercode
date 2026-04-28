@@ -1,4 +1,6 @@
 graphify-out/
 graphify-setup-guide.md
 .agents/
-.directory
+
+backend/.env
+backend/node_modules/
