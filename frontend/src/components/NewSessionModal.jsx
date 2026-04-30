@@ -52,7 +52,7 @@ export default function NewSessionModal({ onClose }) {
             onClick={onClose}
             className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-surface-2 transition-colors"
           >
-            ✕
+            x
           </button>
         </div>
 
@@ -121,7 +121,7 @@ export default function NewSessionModal({ onClose }) {
             >
               {loading ? (
                 <span className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-              ) : 'Create session →'}
+              ) : 'Create session'}
             </button>
           </div>
         </form>

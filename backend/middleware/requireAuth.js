@@ -1,10 +1,5 @@
 import jwt from 'jsonwebtoken'
 
-/**
- * Middleware that verifies the JWT stored in the `token` httpOnly cookie.
- * On success, attaches `req.userId` (the MongoDB _id string) to the request.
- * On failure, responds with 401 — never leaks why the token is invalid.
- */
 export default function requireAuth(req, res, next) {
   const token = req.cookies?.token
 

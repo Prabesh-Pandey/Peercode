@@ -6,22 +6,22 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 const FEATURES = [
   {
-    icon: '⚡',
+    icon: '',
     title: 'Real-time Sync',
     desc: 'See every keystroke as it happens — zero lag collaborative editing powered by Socket.io.',
   },
   {
-    icon: '🧠',
+    icon: '',
     title: 'AI Code Review',
     desc: 'Get instant feedback from Claude AI — streamed inline as comments on your code.',
   },
   {
-    icon: '🔒',
+    icon: '',
     title: 'GitHub Auth',
     desc: 'One-click sign-in with your GitHub account. No passwords, no friction.',
   },
   {
-    icon: '🎨',
+    icon: '',
     title: 'Monaco Editor',
     desc: 'The same editor that powers VS Code — with syntax highlighting for 8+ languages.',
   },
@@ -31,7 +31,7 @@ export default function Landing() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
 
-  // Already logged in → go straight to dashboard
+  // Already logged in, go straight to dashboard
   useEffect(() => {
     if (!loading && user) navigate('/dashboard', { replace: true })
   }, [user, loading, navigate])
@@ -92,7 +92,7 @@ export default function Landing() {
               rel="noreferrer"
               className="btn-ghost text-base px-7 py-3"
             >
-              View source →
+              View source
             </a>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function Landing() {
               <p className="pl-6"><span className="text-slate-300">language:</span> <span className="text-orange-300">'typescript'</span><span className="text-slate-400">,</span></p>
               <p className="pl-6"><span className="text-slate-300">owner:</span> <span className="text-blue-300">req</span><span className="text-slate-400">.</span><span className="text-slate-300">userId</span><span className="text-slate-400">,</span></p>
               <p><span className="text-slate-300">{'}'}</span><span className="text-slate-400">)</span></p>
-              <p className="mt-4"><span className="text-slate-500">// 💬 AI Review: Consider adding input validation here</span></p>
+              <p className="mt-4"><span className="text-slate-500">//  AI Review: Consider adding input validation here</span></p>
             </div>
           </div>
           {/* Presence avatars overlay */}

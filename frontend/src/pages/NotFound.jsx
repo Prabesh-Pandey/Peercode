@@ -7,7 +7,7 @@ export default function NotFound() {
       <h1 className="text-slate-200 text-2xl font-semibold mt-4">Page not found</h1>
       <p className="text-slate-500 mt-2 mb-8">The page you're looking for doesn't exist.</p>
       <Link to="/" className="btn-primary">
-        ← Back home
+        Back home
       </Link>
     </div>
   )

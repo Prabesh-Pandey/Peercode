@@ -45,7 +45,6 @@ export default function Dashboard() {
       {/* Top nav */}
       <nav className="flex items-center justify-between px-6 py-4 border-b border-border glass sticky top-0 z-40">
         <div className="flex items-center gap-2">
-          <span className="text-accent text-xl">⌥</span>
           <span className="text-slate-100 font-semibold text-lg tracking-tight">PeerCode</span>
         </div>
 
@@ -111,8 +110,10 @@ export default function Dashboard() {
           </div>
         ) : sessions.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-28 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-border flex items-center justify-center text-3xl mb-4">
-              📂
+            <div className="w-16 h-16 rounded-2xl bg-surface-2 border border-border flex items-center justify-center mb-4">
+              <svg className="w-7 h-7 text-slate-500" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 9.75h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5M3.75 5.25h16.5" />
+              </svg>
             </div>
             <p className="text-slate-300 font-medium">No sessions yet</p>
             <p className="text-slate-500 text-sm mt-1 mb-6">Create your first session to get started</p>
