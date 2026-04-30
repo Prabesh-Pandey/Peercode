@@ -27,10 +27,10 @@ export default function Session() {
   const saveTimer       = useRef(null)   // debounce timer handle
   const isRemoteUpdate  = useRef(false)  // flag: true when code change came from socket
 
-  // ── Socket connection ─────────────────────────────────────────────────────
+  //  Socket connection 
   const socketRef = useSocket(id, user)
 
-  // ── Fetch session on mount ─────────────────────────────────────────────────
+  //  Fetch session on mount 
   useEffect(() => {
     api.get(`/sessions/${id}`)
       .then(setSession)
@@ -42,7 +42,7 @@ export default function Session() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // ── Live code sync ────────────────────────────────────────────────────────
+  //  Live code sync 
   useEffect(() => {
     const socket = socketRef.current
     if (!socket) return
@@ -56,7 +56,7 @@ export default function Session() {
     return () => socket.off('code:change', handleRemoteCode)
   }, [socketRef])
 
-  // ── Presence indicators ───────────────────────────────────────────────────
+  //  Presence indicators 
   // Server emits presence:update with the full member list whenever someone
   // joins or leaves the session room.
   useEffect(() => {
@@ -69,7 +69,7 @@ export default function Session() {
     return () => socket.off('presence:update', handlePresence)
   }, [socketRef])
 
-  // ── Debounced auto-save + socket emit ────────────────────────────────────
+  //  Debounced auto-save + socket emit 
   const handleCodeChange = useCallback((value) => {
     // If Monaco fired onChange because of a remote update we applied,
     // skip everything — we must not re-emit back to the room.
@@ -98,14 +98,14 @@ export default function Session() {
   // Cleanup timer on unmount
   useEffect(() => () => clearTimeout(saveTimer.current), [])
 
-  // ── Fetch comments on mount ───────────────────────────────────────────────
+  //  Fetch comments on mount 
   useEffect(() => {
     api.get(`/comments/${id}`)
       .then(setComments)
       .catch(() => {})  // non-fatal
   }, [id])
 
-  // ── Incoming comments from other clients ─────────────────────────────────
+  //  Incoming comments from other clients 
   useEffect(() => {
     const socket = socketRef.current
     if (!socket) return
@@ -115,7 +115,7 @@ export default function Session() {
     return () => socket.off('comment:new', handleNewComment)
   }, [socketRef])
 
-  // ── Monaco gutter click → select a line ──────────────────────────────────
+  //  Monaco gutter click → select a line 
   const handleEditorMount = useCallback((editor, monaco) => {
     editor.onMouseDown((e) => {
       const isGutter =
@@ -128,7 +128,7 @@ export default function Session() {
     })
   }, [])
 
-  // ── Submit a comment ─────────────────────────────────────────────────────
+  //  Submit a comment 
   const handleCommentSubmit = async (e) => {
     e.preventDefault()
     if (!commentInput.trim() || selectedLine === null) return
@@ -149,14 +149,14 @@ export default function Session() {
     }
   }
 
-  // ── Copy session invite link ──────────────────────────────────────────────
+  //  Copy session invite link 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // ── Render states ──────────────────────────────────────────────────────────
+  //  Render states 
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#0d0d14]">
@@ -180,7 +180,7 @@ export default function Session() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0d0d14] overflow-hidden">
-      {/* ── Top bar ─────────────────────────────────────────────────────────── */}
+      {/*  Top bar  */}
       <header className="flex items-center justify-between px-5 py-3 border-b border-border glass shrink-0 z-30">
         {/* Left — back + title */}
         <div className="flex items-center gap-3 min-w-0">
@@ -244,7 +244,7 @@ export default function Session() {
         </div>
       </header>
 
-      {/* ── Split view ──────────────────────────────────────────────────────── */}
+      {/*  Split view  */}
       <div className="flex flex-1 overflow-hidden">
         {/* Editor — left pane */}
         <div className="flex-1 flex flex-col overflow-hidden">
