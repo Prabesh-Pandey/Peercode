@@ -16,6 +16,7 @@ export default function Session() {
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState('')
   const [saveStatus, setSaveStatus] = useState('')
+  const [members, setMembers]       = useState([])  // live presence list from socket
 
   const editorRef       = useRef(null)   // Monaco editor instance
   const saveTimer       = useRef(null)   // debounce timer handle
@@ -37,9 +38,6 @@ export default function Session() {
   }, [id])
 
   // ── Live code sync ────────────────────────────────────────────────────────
-  // Listen for code:change from other clients in the same room.
-  // Set isRemoteUpdate flag BEFORE updating state so Monaco's onChange can
-  // detect it and skip the re-emit (preventing an infinite broadcast loop).
   useEffect(() => {
     const socket = socketRef.current
     if (!socket) return
@@ -51,6 +49,19 @@ export default function Session() {
 
     socket.on('code:change', handleRemoteCode)
     return () => socket.off('code:change', handleRemoteCode)
+  }, [socketRef])
+
+  // ── Presence indicators ───────────────────────────────────────────────────
+  // Server emits presence:update with the full member list whenever someone
+  // joins or leaves the session room.
+  useEffect(() => {
+    const socket = socketRef.current
+    if (!socket) return
+
+    const handlePresence = (memberList) => setMembers(memberList)
+
+    socket.on('presence:update', handlePresence)
+    return () => socket.off('presence:update', handlePresence)
   }, [socketRef])
 
   // ── Debounced auto-save + socket emit ────────────────────────────────────
@@ -141,17 +152,17 @@ export default function Session() {
             </span>
           )}
 
-          {/* Participant avatars placeholder */}
+          {/* Live presence avatars */}
           <div id="participants-list" className="flex -space-x-2">
-            {[user].filter(Boolean).map((u, i) => (
+            {(members.length > 0 ? members : user ? [{ username: user.username, avatarUrl: user.avatarUrl }] : []).map((m, i) => (
               <div
                 key={i}
-                title={u.username}
+                title={m.username}
                 className="w-7 h-7 rounded-full bg-accent border-2 border-[#0d0d14] flex items-center justify-center text-white text-xs font-bold overflow-hidden"
               >
-                {u.avatarUrl
-                  ? <img src={u.avatarUrl} alt={u.username} className="w-full h-full object-cover" />
-                  : u.username?.[0]?.toUpperCase()}
+                {m.avatarUrl
+                  ? <img src={m.avatarUrl} alt={m.username} className="w-full h-full object-cover" />
+                  : m.username?.[0]?.toUpperCase()}
               </div>
             ))}
           </div>
@@ -172,23 +183,27 @@ export default function Session() {
 
         {/* Sidebar — right pane */}
         <aside className="w-72 border-l border-border flex flex-col shrink-0 bg-surface">
-          {/* Participants section */}
+          {/* Live participants */}
           <div className="p-4 border-b border-border">
             <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">
-              Participants
+              Online — {members.length || 1}
             </h3>
             <div id="participants-sidebar" className="space-y-2">
-              {[session?.owner, ...(session?.participants ?? [])].filter(Boolean).map((p, i) => (
+              {(members.length > 0
+                ? members
+                : user ? [{ username: user.username, avatarUrl: user.avatarUrl, userId: user.id }] : []
+              ).map((m, i) => (
                 <div key={i} className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent-light overflow-hidden shrink-0">
-                    {p.avatarUrl
-                      ? <img src={p.avatarUrl} alt={p.username} className="w-full h-full object-cover" />
-                      : p.username?.[0]?.toUpperCase()}
+                  <div className="relative">
+                    <div className="w-7 h-7 rounded-full bg-accent/20 border border-accent/30 flex items-center justify-center text-xs font-bold text-accent-light overflow-hidden">
+                      {m.avatarUrl
+                        ? <img src={m.avatarUrl} alt={m.username} className="w-full h-full object-cover" />
+                        : m.username?.[0]?.toUpperCase()}
+                    </div>
+                    {/* Green online dot */}
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-green-400 border border-surface" />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-slate-200 text-xs font-medium truncate">{p.username}</p>
-                    {i === 0 && <p className="text-slate-500 text-[10px]">owner</p>}
-                  </div>
+                  <p className="text-slate-200 text-xs font-medium truncate">{m.username}</p>
                 </div>
               ))}
             </div>
