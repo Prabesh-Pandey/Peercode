@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
 import CodeEditor from '../components/CodeEditor'
+import useSocket from '../hooks/useSocket'
 
 const SAVE_DELAY_MS = 1000  // debounce: wait 1 s of inactivity before saving
 
@@ -11,15 +12,17 @@ export default function Session() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [session, setSession] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError]     = useState('')
-
-  // "saving…" / "saved" / "" indicator
+  const [session, setSession]   = useState(null)
+  const [loading, setLoading]   = useState(true)
+  const [error, setError]       = useState('')
   const [saveStatus, setSaveStatus] = useState('')
 
-  const editorRef  = useRef(null)   // Monaco editor instance
-  const saveTimer  = useRef(null)   // debounce timer handle
+  const editorRef       = useRef(null)   // Monaco editor instance
+  const saveTimer       = useRef(null)   // debounce timer handle
+  const isRemoteUpdate  = useRef(false)  // flag: true when code change came from socket
+
+  // ── Socket connection ─────────────────────────────────────────────────────
+  const socketRef = useSocket(id, user)
 
   // ── Fetch session on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -33,10 +36,34 @@ export default function Session() {
       .finally(() => setLoading(false))
   }, [id])
 
-  // ── Debounced auto-save ────────────────────────────────────────────────────
+  // ── Live code sync ────────────────────────────────────────────────────────
+  // Listen for code:change from other clients in the same room.
+  // Set isRemoteUpdate flag BEFORE updating state so Monaco's onChange can
+  // detect it and skip the re-emit (preventing an infinite broadcast loop).
+  useEffect(() => {
+    const socket = socketRef.current
+    if (!socket) return
+
+    const handleRemoteCode = ({ code }) => {
+      isRemoteUpdate.current = true
+      setSession((prev) => prev ? { ...prev, code } : prev)
+    }
+
+    socket.on('code:change', handleRemoteCode)
+    return () => socket.off('code:change', handleRemoteCode)
+  }, [socketRef])
+
+  // ── Debounced auto-save + socket emit ────────────────────────────────────
   const handleCodeChange = useCallback((value) => {
-    // Update local state immediately so the editor isn't controlled
-    setSession((prev) => prev ? { ...prev, code: value } : prev)
+    // If Monaco fired onChange because of a remote update we applied,
+    // skip everything — we must not re-emit back to the room.
+    if (isRemoteUpdate.current) {
+      isRemoteUpdate.current = false
+      return
+    }
+
+    // Broadcast this edit to everyone else in the room
+    socketRef.current?.emit('code:change', { sessionId: id, code: value })
 
     setSaveStatus('saving…')
     clearTimeout(saveTimer.current)
@@ -50,7 +77,7 @@ export default function Session() {
         setSaveStatus('save failed')
       }
     }, SAVE_DELAY_MS)
-  }, [id])
+  }, [id, socketRef])
 
   // Cleanup timer on unmount
   useEffect(() => () => clearTimeout(saveTimer.current), [])
