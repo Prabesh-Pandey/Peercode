@@ -1,4 +1,3 @@
-// routes/comments.js
 import { Router } from 'express'
 import { z } from 'zod'
 import Comment from '../models/Comment.js'
@@ -13,17 +12,14 @@ const createCommentSchema = z.object({
   text: z.string().min(1).max(2000),
 })
 
-// ── Helper ────────────────────────────────────────────────────────────────────
-// Any authenticated user who can reach this endpoint has already passed
-// requireAuth. Comments access is gated at the session level (invite link).
+// Check the session exists (access is controlled at the session level)
 async function getSession(sessionId, res) {
   const session = await CodeSession.findById(sessionId).lean()
   if (!session) { res.status(404).json({ message: 'Session not found.' }); return null }
   return session
 }
 
-// ── GET /comments/:sessionId ──────────────────────────────────────────────────
-// Fetch all comments for a session, sorted by line number then creation time.
+// GET /comments/:sessionId — get all comments sorted by line number
 router.get('/:sessionId', async (req, res) => {
   const session = await getSession(req.params.sessionId, res)
   if (!session) return
@@ -37,9 +33,7 @@ router.get('/:sessionId', async (req, res) => {
   res.json(comments)
 })
 
-// ── POST /comments/:sessionId ─────────────────────────────────────────────────
-// Create a new comment. The caller is responsible for emitting comment:new
-// via Socket.io after this succeeds.
+// POST /comments/:sessionId — create a new comment on a specific line
 router.post('/:sessionId', async (req, res) => {
   const session = await getSession(req.params.sessionId, res)
   if (!session) return
@@ -59,9 +53,7 @@ router.post('/:sessionId', async (req, res) => {
     author:     req.userId,
   })
 
-  // Populate author before returning so the client can render it immediately
   await comment.populate('author', 'username avatarUrl')
-
   res.status(201).json(comment)
 })
 
