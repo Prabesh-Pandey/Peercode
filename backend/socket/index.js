@@ -5,59 +5,36 @@ import cookie from 'cookie'
 import { ALLOWED_ORIGINS } from '../config/constants.js'
 import CodeSession from '../models/CodeSession.js'
 
-/**
- * In-memory presence store.
- * Structure: Map<sessionId, Map<socketId, { userId, username, avatarUrl }>>
- * No Redis needed — the ROADMAP decision is to handle presence purely in memory + MongoDB.
- */
+// In-memory map: sessionId → Map(socketId → { userId, username, avatarUrl })
 const rooms = new Map()
 
-/**
- * Attach a Socket.io server to the existing Express HTTP server.
- * Call this once in server.js, passing the `server` returned by `app.listen()`.
- */
+// Attach Socket.io to the Express HTTP server
 export function initSocket(httpServer) {
   const io = new Server(httpServer, {
-    cors: {
-      origin: ALLOWED_ORIGINS,
-      credentials: true,   // needed so the browser sends the httpOnly cookie
-    },
+    cors: { origin: ALLOWED_ORIGINS, credentials: true },
   })
 
-  //  Auth middleware 
-  // Runs before every connection. Verifies the JWT stored in the httpOnly cookie.
+  // Verify JWT cookie before allowing a connection
   io.use((socket, next) => {
     try {
-      const rawCookies = socket.handshake.headers.cookie || ''
-      const cookies    = cookie.parse(rawCookies)
-      const token      = cookies.token
-
-      if (!token) {
-        return next(new Error('Authentication required.'))
-      }
-
-      const payload = jwt.verify(token, process.env.JWT_SECRET)
-
-      // Attach user info to the socket so event handlers can use it
+      const cookies = cookie.parse(socket.handshake.headers.cookie || '')
+      const payload = jwt.verify(cookies.token, process.env.JWT_SECRET)
       socket.userId   = payload.sub
       socket.username = payload.username
-
       next()
     } catch {
       next(new Error('Invalid or expired token.'))
     }
   })
 
-  //  Connection handler 
   io.on('connection', (socket) => {
-    console.log(` [socket] connected — user:${socket.username} socket:${socket.id}`)
+    console.log(`[socket] connected: ${socket.username}`)
 
-    // join:session 
-    // Client emits this immediately after connecting, passing the sessionId.
+    // Client sends this right after connecting to join a session room
     socket.on('join:session', async ({ sessionId, avatarUrl }) => {
       socket.join(sessionId)
 
-      // In-memory presence
+      // Track in memory
       if (!rooms.has(sessionId)) rooms.set(sessionId, new Map())
       rooms.get(sessionId).set(socket.id, {
         userId:    socket.userId,
@@ -65,33 +42,30 @@ export function initSocket(httpServer) {
         avatarUrl: avatarUrl || '',
       })
 
-      // MongoDB — persist this user in the participants array (idempotent)
+      // Save to DB (safe to call multiple times)
       await CodeSession.findByIdAndUpdate(sessionId, {
         $addToSet: { participants: socket.userId },
-      }).catch(() => {})  // non-fatal if session doesn't exist yet
+      }).catch(() => {})
 
+      // Tell everyone in the room who is online
       const members = [...rooms.get(sessionId).values()]
       io.to(sessionId).emit('presence:update', members)
 
-      console.log(` [socket] ${socket.username} joined session ${sessionId}`)
+      console.log(`[socket] ${socket.username} joined session ${sessionId}`)
     })
 
-    //  code:change 
-    // Client emits whenever the editor content changes.
-    // We broadcast to everyone else in the room (not back to sender).
+    // Broadcast code changes to everyone else in the room
     socket.on('code:change', ({ sessionId, code }) => {
       socket.to(sessionId).emit('code:change', { code })
     })
 
-    //  comment:new 
-    // Client emits after successfully POSTing a comment to the REST API.
-    // We broadcast the saved comment object to the room.
+    // Broadcast a new comment to everyone else in the room
     socket.on('comment:new', ({ sessionId, comment }) => {
       socket.to(sessionId).emit('comment:new', { comment })
     })
 
-    //  disconnect 
-    socket.on('disconnecting', async () => {
+    // Clean up when a user leaves
+    socket.on('disconnecting', () => {
       for (const roomId of socket.rooms) {
         if (roomId === socket.id) continue
 
@@ -100,24 +74,15 @@ export function initSocket(httpServer) {
 
         room.delete(socket.id)
 
-        // MongoDB — remove this user from participants when they go offline
-        // Only removes them if no other socket for this user is still in the room
-        const stillPresent = [...room.values()].some((m) => m.userId === socket.userId)
-        if (!stillPresent) {
-          await CodeSession.findByIdAndUpdate(roomId, {
-            $pull: { participants: socket.userId },
-          }).catch(() =>{})
-        }
-
+        // Participants stay in DB permanently — only memory presence is cleared
         if (room.size === 0) {
           rooms.delete(roomId)
         } else {
-          const members = [...room.values()]
-          io.to(roomId).emit('presence:update', members)
+          io.to(roomId).emit('presence:update', [...room.values()])
         }
       }
 
-      console.log(`[socket] disconnected — user:${socket.username} socket:${socket.id}`)
+      console.log(`[socket] disconnected: ${socket.username}`)
     })
   })
 
