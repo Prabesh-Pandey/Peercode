@@ -14,22 +14,18 @@ const createCommentSchema = z.object({
 })
 
 // ── Helper ────────────────────────────────────────────────────────────────────
-async function assertAccess(sessionId, userId, res) {
+// Any authenticated user who can reach this endpoint has already passed
+// requireAuth. Comments access is gated at the session level (invite link).
+async function getSession(sessionId, res) {
   const session = await CodeSession.findById(sessionId).lean()
   if (!session) { res.status(404).json({ message: 'Session not found.' }); return null }
-
-  const isOwner       = session.owner.toString() === userId
-  const isParticipant = session.participants.some((p) => p.toString() === userId)
-  if (!isOwner && !isParticipant) {
-    res.status(403).json({ message: 'Access denied.' }); return null
-  }
   return session
 }
 
 // ── GET /comments/:sessionId ──────────────────────────────────────────────────
 // Fetch all comments for a session, sorted by line number then creation time.
 router.get('/:sessionId', async (req, res) => {
-  const session = await assertAccess(req.params.sessionId, req.userId, res)
+  const session = await getSession(req.params.sessionId, res)
   if (!session) return
 
   const comments = await Comment
@@ -45,7 +41,7 @@ router.get('/:sessionId', async (req, res) => {
 // Create a new comment. The caller is responsible for emitting comment:new
 // via Socket.io after this succeeds.
 router.post('/:sessionId', async (req, res) => {
-  const session = await assertAccess(req.params.sessionId, req.userId, res)
+  const session = await getSession(req.params.sessionId, res)
   if (!session) return
 
   const result = createCommentSchema.safeParse(req.body)

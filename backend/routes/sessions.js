@@ -44,13 +44,18 @@ function validate(schema, body, res) {
 
 /**
  * GET /sessions
- * Returns all sessions owned by the logged-in user, newest first.
+ * Returns all sessions the user owns OR has joined as a participant, newest first.
  */
 router.get('/', async (req, res) => {
   const sessions = await CodeSession
-    .find({ owner: req.userId })
+    .find({
+      $or: [
+        { owner: req.userId },
+        { participants: req.userId },
+      ],
+    })
     .sort({ updatedAt: -1 })
-    .select('title language updatedAt participants')  // only what the dashboard needs
+    .select('title language updatedAt participants owner')
     .lean()
 
   res.json(sessions)
@@ -75,7 +80,8 @@ router.post('/', async (req, res) => {
 
 /**
  * GET /sessions/:id
- * Get a single session. Only the owner or a participant may read it.
+ * Any authenticated user can open a session via its link.
+ * If they are not yet a participant they are auto-added (idempotent $addToSet).
  */
 router.get('/:id', async (req, res) => {
   const session = await CodeSession
@@ -89,12 +95,17 @@ router.get('/:id', async (req, res) => {
   }
 
   const isOwner = session.owner._id.toString() === req.userId
-  const isParticipant = session.participants.some(
-    (p) => p._id.toString() === req.userId
-  )
 
-  if (!isOwner && !isParticipant) {
-    return res.status(403).json({ message: 'Access denied.' })
+  // Auto-join: if not the owner and not already a participant, add them now
+  if (!isOwner) {
+    const alreadyIn = session.participants.some(
+      (p) => p._id.toString() === req.userId
+    )
+    if (!alreadyIn) {
+      await CodeSession.findByIdAndUpdate(req.params.id, {
+        $addToSet: { participants: req.userId },
+      })
+    }
   }
 
   res.json(session)
@@ -102,7 +113,7 @@ router.get('/:id', async (req, res) => {
 
 /**
  * PATCH /sessions/:id/code
- * Auto-save the editor content. Only the owner or a participant may update.
+ * Auto-save the editor content. Any participant (including newly joined) may save.
  */
 router.patch('/:id/code', async (req, res) => {
   const { data, error } = validate(updateCodeSchema, req.body, res)
@@ -114,13 +125,12 @@ router.patch('/:id/code', async (req, res) => {
     return res.status(404).json({ message: 'Session not found.' })
   }
 
+  // Auto-join if needed (handles edge case where PATCH arrives before GET)
   const isOwner = session.owner.toString() === req.userId
-  const isParticipant = session.participants.some(
-    (p) => p.toString() === req.userId
-  )
-
-  if (!isOwner && !isParticipant) {
-    return res.status(403).json({ message: 'Access denied.' })
+  if (!isOwner) {
+    await CodeSession.findByIdAndUpdate(req.params.id, {
+      $addToSet: { participants: req.userId },
+    })
   }
 
   await CodeSession.findByIdAndUpdate(req.params.id, { code: data.code })

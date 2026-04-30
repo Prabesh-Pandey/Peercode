@@ -21,6 +21,7 @@ export default function Session() {
   const [selectedLine, setSelectedLine] = useState(null)  // line clicked in gutter
   const [commentInput, setCommentInput] = useState('')
   const [commentLoading, setCommentLoading] = useState(false)
+  const [copied, setCopied]         = useState(false)
 
   const editorRef       = useRef(null)   // Monaco editor instance
   const saveTimer       = useRef(null)   // debounce timer handle
@@ -148,6 +149,13 @@ export default function Session() {
     }
   }
 
+  // ── Copy session invite link ──────────────────────────────────────────────
+  const copyLink = () => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   // ── Render states ──────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -195,8 +203,20 @@ export default function Session() {
           </span>
         </div>
 
-        {/* Right — save status + participants */}
-        <div className="flex items-center gap-4 shrink-0">
+        {/* Right — copy link + save status + participants */}
+        <div className="flex items-center gap-3 shrink-0">
+          {/* Copy invite link */}
+          <button
+            id="copy-invite-link"
+            onClick={copyLink}
+            title="Copy invite link"
+            className={`btn-ghost text-xs px-3 py-1.5 transition-all ${
+              copied ? 'text-green-400 border-green-400/30' : ''
+            }`}
+          >
+            {copied ? '✓ Copied!' : 'Copy invite link'}
+          </button>
+
           {saveStatus && (
             <span className={`text-xs font-medium transition-all ${
               saveStatus === 'saved ✓' ? 'text-green-400'

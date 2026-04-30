@@ -87,7 +87,7 @@ export default function Dashboard() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-slate-100 text-2xl font-bold">
-              Welcome back, {user?.name || user?.username} 👋
+              Welcome back, {user?.name || user?.username} 
             </h1>
             <p className="text-slate-500 text-sm mt-1">
               {sessions.length} session{sessions.length !== 1 ? 's' : ''} · pick up where you left off
@@ -126,32 +126,41 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sessions.map((s) => (
-              <div
-                key={s._id}
-                id={`session-card-${s._id}`}
-                onClick={() => navigate(`/session/${s._id}`)}
-                className="card-hover group"
-              >
-                {/* Language badge */}
-                <span className={`badge ${LANG_BADGES[s.language] || 'bg-slate-400/10 text-slate-400'} mb-3`}>
-                  {s.language}
-                </span>
-
-                <h3 className="text-slate-100 font-semibold text-sm leading-snug group-hover:text-white transition-colors line-clamp-2">
-                  {s.title}
-                </h3>
-
-                <div className="flex items-center justify-between mt-4">
-                  <span className="text-slate-500 text-xs">{timeAgo(s.updatedAt)}</span>
-                  {s.participants?.length > 0 && (
-                    <span className="text-slate-500 text-xs">
-                      {s.participants.length} collaborator{s.participants.length !== 1 ? 's' : ''}
+            {sessions.map((s) => {
+              const isOwned = s.owner?.toString() === user?.id || s.owner === user?.id
+              return (
+                <div
+                  key={s._id}
+                  id={`session-card-${s._id}`}
+                  onClick={() => navigate(`/session/${s._id}`)}
+                  className="card-hover group"
+                >
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`badge ${LANG_BADGES[s.language] || 'bg-slate-400/10 text-slate-400'}`}>
+                      {s.language}
                     </span>
-                  )}
+                    {!isOwned && (
+                      <span className="badge bg-violet-400/10 text-violet-400 text-[10px]">
+                        joined
+                      </span>
+                    )}
+                  </div>
+
+                  <h3 className="text-slate-100 font-semibold text-sm leading-snug group-hover:text-white transition-colors line-clamp-2">
+                    {s.title}
+                  </h3>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <span className="text-slate-500 text-xs">{timeAgo(s.updatedAt)}</span>
+                    {s.participants?.length > 0 && (
+                      <span className="text-slate-500 text-xs">
+                        {s.participants.length} collaborator{s.participants.length !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </main>
