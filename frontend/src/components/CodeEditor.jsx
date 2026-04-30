@@ -8,17 +8,15 @@ import { EDITOR_DEFAULTS } from '../constants'
  * - exposes the editor instance via the `editorRef` prop
  * - calls `onChange(value)` whenever the content changes
  */
-export default function CodeEditor({ value, language, onChange, editorRef }) {
+export default function CodeEditor({ value, language, onChange, editorRef, onMount }) {
   const monacoRef = useRef(null)
 
   function handleMount(editor, monaco) {
     monacoRef.current = monaco
-
-    // Store editor instance in the parent's ref so Session.jsx can call .getValue()
     if (editorRef) editorRef.current = editor
-
-    // Optional: disable the right-click context menu noise
     editor.updateOptions({ contextmenu: false })
+    // Let the parent attach any additional listeners (e.g. gutter click)
+    if (onMount) onMount(editor, monaco)
   }
 
   return (

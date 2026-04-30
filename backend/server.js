@@ -7,6 +7,7 @@ import connectDB from './config/db.js'
 import { ALLOWED_ORIGINS } from './config/constants.js'
 import authRouter from './routes/auth.js'
 import sessionsRouter from './routes/sessions.js'
+import commentsRouter from './routes/comments.js'
 import { initSocket } from './socket/index.js'
 
 const app = express()
@@ -24,13 +25,14 @@ app.use(cookieParser())
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 app.use('/auth', authRouter)
 app.use('/sessions', sessionsRouter)
+app.use('/comments', commentsRouter)
 
 //  Database 
 await connectDB()
 
 //  Start server 
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`)
+  console.log(` Server running on http://localhost:${PORT}`)
 })
 
 // Attach Socket.io to the same HTTP server

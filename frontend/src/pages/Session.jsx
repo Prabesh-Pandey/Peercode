@@ -17,6 +17,10 @@ export default function Session() {
   const [error, setError]       = useState('')
   const [saveStatus, setSaveStatus] = useState('')
   const [members, setMembers]       = useState([])  // live presence list from socket
+  const [comments, setComments]     = useState([])  // all comments for this session
+  const [selectedLine, setSelectedLine] = useState(null)  // line clicked in gutter
+  const [commentInput, setCommentInput] = useState('')
+  const [commentLoading, setCommentLoading] = useState(false)
 
   const editorRef       = useRef(null)   // Monaco editor instance
   const saveTimer       = useRef(null)   // debounce timer handle
@@ -92,6 +96,57 @@ export default function Session() {
 
   // Cleanup timer on unmount
   useEffect(() => () => clearTimeout(saveTimer.current), [])
+
+  // ── Fetch comments on mount ───────────────────────────────────────────────
+  useEffect(() => {
+    api.get(`/comments/${id}`)
+      .then(setComments)
+      .catch(() => {})  // non-fatal
+  }, [id])
+
+  // ── Incoming comments from other clients ─────────────────────────────────
+  useEffect(() => {
+    const socket = socketRef.current
+    if (!socket) return
+    const handleNewComment = ({ comment }) =>
+      setComments((prev) => [...prev, comment])
+    socket.on('comment:new', handleNewComment)
+    return () => socket.off('comment:new', handleNewComment)
+  }, [socketRef])
+
+  // ── Monaco gutter click → select a line ──────────────────────────────────
+  const handleEditorMount = useCallback((editor, monaco) => {
+    editor.onMouseDown((e) => {
+      const isGutter =
+        e.target.type === monaco.editor.MouseTargetType.GUTTER_LINE_NUMBERS ||
+        e.target.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN
+      if (isGutter && e.target.position) {
+        setSelectedLine(e.target.position.lineNumber)
+        setCommentInput('')
+      }
+    })
+  }, [])
+
+  // ── Submit a comment ─────────────────────────────────────────────────────
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault()
+    if (!commentInput.trim() || selectedLine === null) return
+    setCommentLoading(true)
+    try {
+      const saved = await api.post(`/comments/${id}`, {
+        lineNumber: selectedLine,
+        text: commentInput.trim(),
+      })
+      setComments((prev) => [...prev, saved])
+      socketRef.current?.emit('comment:new', { sessionId: id, comment: saved })
+      setCommentInput('')
+      setSelectedLine(null)
+    } catch {
+      // keep input open on error
+    } finally {
+      setCommentLoading(false)
+    }
+  }
 
   // ── Render states ──────────────────────────────────────────────────────────
   if (loading) {
@@ -178,6 +233,7 @@ export default function Session() {
             language={session?.language ?? 'javascript'}
             onChange={handleCodeChange}
             editorRef={editorRef}
+            onMount={handleEditorMount}
           />
         </div>
 
@@ -209,14 +265,72 @@ export default function Session() {
             </div>
           </div>
 
-          {/* Comments section — populated in Day 3 */}
-          <div className="p-4 flex-1 overflow-y-auto">
-            <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-3">
-              Comments
-            </h3>
-            <p id="comments-placeholder" className="text-slate-600 text-xs italic">
-              Click a line number in the editor to leave a comment.
-            </p>
+          {/* Inline threaded comments */}
+          <div className="flex-1 overflow-y-auto flex flex-col">
+            <div className="p-4 border-b border-border">
+              <h3 className="text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                Comments {comments.length > 0 && <span className="text-accent-light">({comments.length})</span>}
+              </h3>
+              {selectedLine === null && (
+                <p className="text-slate-600 text-xs italic mt-1">
+                  Click a line number to comment.
+                </p>
+              )}
+            </div>
+
+            {/* Comment input for selected line */}
+            {selectedLine !== null && (
+              <form onSubmit={handleCommentSubmit} className="p-3 border-b border-border bg-surface-2">
+                <p className="text-accent-light text-xs font-mono mb-2">Line {selectedLine}</p>
+                <textarea
+                  id="comment-input"
+                  className="input text-xs resize-none h-16 font-mono"
+                  placeholder="Leave a comment…"
+                  value={commentInput}
+                  onChange={(e) => setCommentInput(e.target.value)}
+                  autoFocus
+                />
+                <div className="flex gap-2 mt-2">
+                  <button type="submit" disabled={commentLoading || !commentInput.trim()} className="btn-primary text-xs px-3 py-1.5">
+                    {commentLoading ? '…' : 'Post'}
+                  </button>
+                  <button type="button" onClick={() => setSelectedLine(null)} className="btn-ghost text-xs px-3 py-1.5">Cancel</button>
+                </div>
+              </form>
+            )}
+
+            {/* Thread list grouped by line */}
+            <div className="p-3 space-y-3 flex-1">
+              {comments.length === 0 ? (
+                <p className="text-slate-600 text-xs italic">No comments yet.</p>
+              ) : (
+                Object.entries(
+                  comments.reduce((acc, c) => {
+                    const ln = c.lineNumber
+                    if (!acc[ln]) acc[ln] = []
+                    acc[ln].push(c)
+                    return acc
+                  }, {})
+                ).sort(([a], [b]) => Number(a) - Number(b)).map(([line, thread]) => (
+                  <div key={line} className="rounded-lg border border-border overflow-hidden">
+                    <div className="px-2.5 py-1 bg-surface-2 border-b border-border">
+                      <span className="text-accent-light text-[10px] font-mono">Line {line}</span>
+                    </div>
+                    {thread.map((c, i) => (
+                      <div key={i} className="px-2.5 py-2 border-b border-border/50 last:border-0">
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {c.isAiGenerated
+                            ? <span className="text-[10px] text-violet-400 font-medium">✦ AI</span>
+                            : <span className="text-[10px] text-slate-400">{c.author?.username}</span>
+                          }
+                        </div>
+                        <p className="text-slate-300 text-xs leading-relaxed">{c.text}</p>
+                      </div>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           {/* Session info footer */}
