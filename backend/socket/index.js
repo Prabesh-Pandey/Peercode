@@ -1,8 +1,9 @@
-// socket/index.js
+
 import { Server } from 'socket.io'
 import jwt from 'jsonwebtoken'
 import cookie from 'cookie'
 import { ALLOWED_ORIGINS } from '../config/constants.js'
+import CodeSession from '../models/CodeSession.js'
 
 /**
  * In-memory presence store.
@@ -23,7 +24,7 @@ export function initSocket(httpServer) {
     },
   })
 
-  // ── Auth middleware ──────────────────────────────────────────────────────────
+  //  Auth middleware 
   // Runs before every connection. Verifies the JWT stored in the httpOnly cookie.
   io.use((socket, next) => {
     try {
@@ -47,16 +48,16 @@ export function initSocket(httpServer) {
     }
   })
 
-  // ── Connection handler ────────────────────────────────────────────────────────
+  //  Connection handler 
   io.on('connection', (socket) => {
-    console.log(`🔌 [socket] connected — user:${socket.username} socket:${socket.id}`)
+    console.log(` [socket] connected — user:${socket.username} socket:${socket.id}`)
 
-    // ── join:session ─────────────────────────────────────────────────────────
+    // join:session 
     // Client emits this immediately after connecting, passing the sessionId.
-    socket.on('join:session', ({ sessionId, avatarUrl }) => {
+    socket.on('join:session', async ({ sessionId, avatarUrl }) => {
       socket.join(sessionId)
 
-      // Add this user to the in-memory presence map for the room
+      // In-memory presence
       if (!rooms.has(sessionId)) rooms.set(sessionId, new Map())
       rooms.get(sessionId).set(socket.id, {
         userId:    socket.userId,
@@ -64,39 +65,50 @@ export function initSocket(httpServer) {
         avatarUrl: avatarUrl || '',
       })
 
-      // Broadcast the updated member list to everyone in the room
+      // MongoDB — persist this user in the participants array (idempotent)
+      await CodeSession.findByIdAndUpdate(sessionId, {
+        $addToSet: { participants: socket.userId },
+      }).catch(() => {})  // non-fatal if session doesn't exist yet
+
       const members = [...rooms.get(sessionId).values()]
       io.to(sessionId).emit('presence:update', members)
 
-      console.log(`👥 [socket] ${socket.username} joined session ${sessionId}`)
+      console.log(` [socket] ${socket.username} joined session ${sessionId}`)
     })
 
-    // ── code:change ──────────────────────────────────────────────────────────
+    //  code:change 
     // Client emits whenever the editor content changes.
     // We broadcast to everyone else in the room (not back to sender).
     socket.on('code:change', ({ sessionId, code }) => {
       socket.to(sessionId).emit('code:change', { code })
     })
 
-    // ── comment:new ──────────────────────────────────────────────────────────
+    //  comment:new 
     // Client emits after successfully POSTing a comment to the REST API.
     // We broadcast the saved comment object to the room.
     socket.on('comment:new', ({ sessionId, comment }) => {
       socket.to(sessionId).emit('comment:new', { comment })
     })
 
-    // ── disconnect ───────────────────────────────────────────────────────────
-    socket.on('disconnecting', () => {
-      // socket.rooms includes the socket's own id room + any joined rooms
+    //  disconnect 
+    socket.on('disconnecting', async () => {
       for (const roomId of socket.rooms) {
-        if (roomId === socket.id) continue   // skip the socket's own default room
+        if (roomId === socket.id) continue
 
         const room = rooms.get(roomId)
         if (!room) continue
 
         room.delete(socket.id)
 
-        // If room is now empty, clean it up
+        // MongoDB — remove this user from participants when they go offline
+        // Only removes them if no other socket for this user is still in the room
+        const stillPresent = [...room.values()].some((m) => m.userId === socket.userId)
+        if (!stillPresent) {
+          await CodeSession.findByIdAndUpdate(roomId, {
+            $pull: { participants: socket.userId },
+          }).catch(() =>{})
+        }
+
         if (room.size === 0) {
           rooms.delete(roomId)
         } else {
@@ -105,7 +117,7 @@ export function initSocket(httpServer) {
         }
       }
 
-      console.log(`❌ [socket] disconnected — user:${socket.username} socket:${socket.id}`)
+      console.log(`[socket] disconnected — user:${socket.username} socket:${socket.id}`)
     })
   })
 
