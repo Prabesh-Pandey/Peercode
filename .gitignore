@@ -2,6 +2,5 @@ graphify-out/
 graphify-setup-guide.md
 .agents/
 ROADMAP.md
-message.md
 backend/.env
 backend/node_modules/

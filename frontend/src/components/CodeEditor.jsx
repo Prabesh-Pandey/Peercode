@@ -1,4 +1,3 @@
-// src/components/CodeEditor.jsx
 import { useRef } from 'react'
 import MonacoEditor from '@monaco-editor/react'
 import { EDITOR_DEFAULTS } from '../constants'

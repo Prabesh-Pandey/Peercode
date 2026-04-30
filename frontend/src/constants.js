@@ -1,4 +1,3 @@
-// src/constants.js
 // Frontend mirror of backend constants — keep in sync
 
 export const SUPPORTED_LANGUAGES = [

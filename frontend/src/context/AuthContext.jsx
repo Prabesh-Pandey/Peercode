@@ -1,8 +1,7 @@
-// src/context/AuthContext.jsx
 import { createContext, useContext, useReducer, useEffect } from 'react'
 import { api } from '../api'
 
-// ─── State shape ─────────────────────────────────────────────────────────────
+//  State shape 
 // { user: null | { id, username, name, email, avatarUrl }, loading: true|false }
 
 const initialState = { user: null, loading: true }
@@ -18,7 +17,7 @@ function authReducer(state, action) {
   }
 }
 
-// ─── Context ─────────────────────────────────────────────────────────────────
+//  Context 
 
 const AuthContext = createContext(null)
 
@@ -45,7 +44,7 @@ export function AuthProvider({ children }) {
   )
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+//  Hook 
 
 export function useAuth() {
   const ctx = useContext(AuthContext)

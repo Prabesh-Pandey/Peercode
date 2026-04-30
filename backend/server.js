@@ -7,6 +7,7 @@ import connectDB from './config/db.js'
 import { ALLOWED_ORIGINS } from './config/constants.js'
 import authRouter from './routes/auth.js'
 import sessionsRouter from './routes/sessions.js'
+import { initSocket } from './socket/index.js'
 
 const app = express()
 const PORT = process.env.PORT || 8000
@@ -29,8 +30,11 @@ await connectDB()
 
 //  Start server 
 const server = app.listen(PORT, () => {
-  console.log(` Server running on http://localhost:${PORT}`)
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
 })
+
+// Attach Socket.io to the same HTTP server
+const io = initSocket(server)
 
 //  Graceful shutdown 
 const shutdown = async (signal) => {
