@@ -21,10 +21,12 @@ export const ALLOWED_ORIGINS = [
 
 // JWT cookie config — used in auth.js when signing in and logging out
 export const COOKIE_OPTIONS = {
-  httpOnly: true,                                    
-  secure: process.env.NODE_ENV === 'production',    
-  sameSite: 'lax',                                   
-  maxAge: 7 * 24 * 60 * 60 * 1000,                  
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  // 'none' required for cross-origin cookies (Railway backend + Vercel frontend)
+  // 'lax' is fine for local dev where frontend and backend share localhost
+  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+  maxAge: 7 * 24 * 60 * 60 * 1000,
 }
 
 // how long a JWT stays valid — keep in sync with COOKIE_OPTIONS.maxAge
