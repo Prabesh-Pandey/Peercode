@@ -3,6 +3,7 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import mongoose from 'mongoose'
+import rateLimit from 'express-rate-limit'
 import connectDB from './config/db.js'
 import { ALLOWED_ORIGINS } from './config/constants.js'
 import authRouter from './routes/auth.js'
@@ -10,16 +11,27 @@ import sessionsRouter from './routes/sessions.js'
 import commentsRouter from './routes/comments.js'
 import { initSocket } from './socket/index.js'
 
+
 const app = express()
 const PORT = process.env.PORT || 8000
+
+// Limit each IP to 100 requests per 15 minutes (production only)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: () => process.env.NODE_ENV !== 'production',
+})
 
 //  Global middleware 
 app.use(cors({
   origin: ALLOWED_ORIGINS,
-  credentials: true,           // allow cookies to be sent cross-origin
+  credentials: true,
 }))
 app.use(express.json())
 app.use(cookieParser())
+app.use(limiter)
 
 //  Routes 
 app.get('/health', (_req, res) => res.json({ status: 'ok' }))

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { api } from '../api'
 import CodeEditor from '../components/CodeEditor'
+import ErrorBoundary from '../components/ErrorBoundary'
 import useSocket from '../hooks/useSocket'
 
 const SAVE_DELAY_MS = 1000  // debounce: wait 1 s of inactivity before saving
@@ -246,15 +247,17 @@ export default function Session() {
 
       {/*  Split view  */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Editor — left pane */}
+        {/* Editor */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <CodeEditor
-            value={session?.code ?? ''}
-            language={session?.language ?? 'javascript'}
-            onChange={handleCodeChange}
-            editorRef={editorRef}
-            onMount={handleEditorMount}
-          />
+          <ErrorBoundary>
+            <CodeEditor
+              value={session?.code ?? ''}
+              language={session?.language ?? 'javascript'}
+              onChange={handleCodeChange}
+              editorRef={editorRef}
+              onMount={handleEditorMount}
+            />
+          </ErrorBoundary>
         </div>
 
         {/* Sidebar — right pane */}
