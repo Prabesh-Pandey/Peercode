@@ -15,6 +15,8 @@ import { initSocket } from './socket/index.js'
 const app = express()
 const PORT = process.env.PORT || 8000
 
+app.set('trust proxy', 1)
+
 // Limit each IP to 100 requests per 15 minutes (production only)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,

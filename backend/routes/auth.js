@@ -86,7 +86,7 @@ router.get('/callback', async (req, res) => {
       email:     profile.email || '',
       avatarUrl: profile.avatar_url || '',
     },
-    { upsert: true, new: true, setDefaultsOnInsert: true }
+    { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
   )
 
   // Sign a JWT and send it as an httpOnly cookie
