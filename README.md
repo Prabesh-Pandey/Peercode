@@ -30,18 +30,17 @@
 
 ## Features
 
-| Feature              | Description                                                                             |
-| -------------------- | --------------------------------------------------------------------------------------- |
-| **Real-time Sync**   | See every keystroke as it happens — zero lag collaborative editing powered by Socket.io |
-| **AI Code Review**   | Get instant feedback from Claude AI streamed inline as comments on your code            |
-| **GitHub OAuth**     | One-click sign-in with your GitHub account — no passwords, no friction                  |
-| **Monaco Editor**    | The same editor that powers VS Code with syntax highlighting for 8+ languages           |
-| **Live Presence**    | See who else is in the session with real-time avatar indicators                         |
-| **Inline Comments**  | Click any line number to leave threaded comments synchronized across all participants   |
-| **Auto-save**        | Code debounce-saves to MongoDB automatically every 1 second of inactivity               |
-| **JWT Auth**         | Secure httpOnly cookie-based JWT authentication with CSRF protection                    |
-| **Docker Ready**     | Full Docker Compose setup for local development                                         |
-| **CI/CD**            | GitHub Actions pipeline for automated build and deployment                              |
+| Feature             | Description                                                                                    |
+| ------------------- | ---------------------------------------------------------------------------------------------- |
+| **Real-time Sync**  | Low-latency collaborative editing — keystrokes are broadcast to all participants via Socket.io |
+| **GitHub OAuth**    | One-click sign-in with your GitHub account — no passwords, no friction                         |
+| **Monaco Editor**   | The same editor that powers VS Code with syntax highlighting for 8+ languages                  |
+| **Live Presence**   | See who else is in the session with real-time avatar indicators                                |
+| **Inline Comments** | Click any line number to leave threaded comments synchronized across all participants          |
+| **Auto-save**       | Code debounce-saves to MongoDB automatically every 1 second of inactivity                      |
+| **JWT Auth**        | Secure httpOnly cookie-based JWT authentication with CSRF protection                           |
+| **Docker Ready**    | Full Docker Compose setup for local development                                                |
+| **CI/CD**           | GitHub Actions pipeline for automated build and deployment                                     |
 
 ---
 
@@ -330,5 +329,5 @@ docker run -p 8000:8000 --env-file .env peercode-backend
 ---
 
 <p align="center">
-  <sub>Made by Prabesh Pandey</sub>
+  <sub>-Prabesh Pandey</sub>
 </p>

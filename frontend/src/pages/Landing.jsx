@@ -10,11 +10,11 @@ const FEATURES = [
     title: 'Real-time Sync',
     desc: 'See every keystroke as it happens — zero lag collaborative editing powered by Socket.io.',
   },
-  {
-    icon: '',
-    title: 'AI Code Review',
-    desc: 'Get instant feedback from Claude AI — streamed inline as comments on your code.',
-  },
+  // {
+  //   icon: '',
+  //   title: 'AI Code Review',
+  //   desc: 'Get instant feedback from Claude AI — streamed inline as comments on your code.',
+  // },
   {
     icon: '',
     title: 'GitHub Auth',
@@ -62,7 +62,7 @@ export default function Landing() {
         <div className="relative animate-fade-in">
           <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent-light text-xs font-medium mb-6">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-            Real-time · Collaborative · AI-powered
+            Real-time · Collaborative 
           </span>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-bold text-slate-100 leading-tight mb-6">
@@ -74,7 +74,7 @@ export default function Landing() {
 
           <p className="text-slate-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
             A real-time collaborative code review platform. Invite teammates, write code
-            side-by-side, and get AI-powered feedback — all in your browser.
+            side-by-side.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -113,7 +113,7 @@ export default function Landing() {
               <p className="pl-6"><span className="text-slate-300">language:</span> <span className="text-orange-300">'typescript'</span><span className="text-slate-400">,</span></p>
               <p className="pl-6"><span className="text-slate-300">owner:</span> <span className="text-blue-300">req</span><span className="text-slate-400">.</span><span className="text-slate-300">userId</span><span className="text-slate-400">,</span></p>
               <p><span className="text-slate-300">{'}'}</span><span className="text-slate-400">)</span></p>
-              <p className="mt-4"><span className="text-slate-500">//  AI Review: Consider adding input validation here</span></p>
+              {/* <p className="mt-4"><span className="text-slate-500">//  AI Review: Consider adding input validation here</span></p> */}
             </div>
           </div>
           {/* Presence avatars overlay */}
